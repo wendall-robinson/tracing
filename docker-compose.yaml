@@ -1,0 +1,41 @@
+version: '3'
+services:
+  example:
+    build: .
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel:4317
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_EXPORTER_OTLP_HEADERS=key=value
+    ports:
+      - "8080:8080"
+    restart: always
+    networks:
+      - tracing_example 
+
+  otel:
+    image: otel/opentelemetry-collector-contrib:latest
+    command:
+      - "--config=/conf/otel-config.yaml"
+    depends_on:
+      - example
+      - zipkin
+    ports:
+      - 4317:4317
+    volumes:
+      - ./otel-config.yaml:/conf/otel-config.yaml
+    networks:
+      - tracing_example    
+
+  zipkin:
+    image: openzipkin/zipkin-slim
+    ports:
+      - 9411:9411
+    networks:
+      - tracing_example
+
+networks:
+  tracing_example:
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.11.0/24
